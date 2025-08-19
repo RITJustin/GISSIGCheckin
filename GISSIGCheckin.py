@@ -6,8 +6,13 @@ st.set_page_config(layout="wide")
 
 uploaded_file = st.file_uploader("Upload Constant Contact CSV", type="csv")
 
-if uploaded_file:
-    df = pd.read_csv(uploaded_file)
+# --- Load CSV into session state ---
+if uploaded_file and "df" not in st.session_state:
+    st.session_state.df = pd.read_csv(uploaded_file)
+
+# Only run app if data is loaded
+if "df" in st.session_state:
+    df = st.session_state.df
 
     # Add check-in columns if not present
     if "Checked In" not in df.columns:
@@ -41,6 +46,7 @@ if uploaded_file:
                 "Checked In": True,
             }
             df = pd.concat([df, pd.DataFrame([new_entry])], ignore_index=True)
+            st.session_state.df = df  # persist change
             st.success(f"✅ Added and checked in {new_first} {new_last}")
 
     # --- Filters ---
@@ -79,12 +85,14 @@ if uploaded_file:
                     if st.button("Check In", key=f"in_{i}"):
                         df.at[i, "Checked In"] = True
                         df.at[i, "Checked In Time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        st.session_state.df = df  # persist change
 
             with col3:
                 if row["Checked In"]:
                     if st.button("Reset", key=f"reset_{i}"):
                         df.at[i, "Checked In"] = False
                         df.at[i, "Checked In Time"] = ""
+                        st.session_state.df = df  # persist change
 
     # --- Summary ---
     st.subheader("📋 Attendee List")
