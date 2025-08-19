@@ -15,6 +15,7 @@ if uploaded_file:
     if "Checked In Time" not in df.columns:
         df["Checked In Time"] = ""
 
+    # --- Add Walk-In Form ---
     st.subheader("➕ Add Walk-In / Not Registered")
     with st.form("add_attendee"):
         col1, col2, col3 = st.columns(3)
@@ -42,13 +43,13 @@ if uploaded_file:
             df = pd.concat([df, pd.DataFrame([new_entry])], ignore_index=True)
             st.success(f"✅ Added and checked in {new_first} {new_last}")
 
-    # Filter option
+    # --- Filters ---
     show_only_not_checked = st.checkbox("🔲 Show only people not checked in", value=True)
 
-    # Search bar
+    # --- Search bar ---
     search = st.text_input("🔍 Search by Name")
 
-    # Apply filter
+    # Apply filters
     filtered_df = df
     if show_only_not_checked:
         filtered_df = filtered_df[filtered_df["Checked In"] == False]
@@ -58,11 +59,12 @@ if uploaded_file:
     else:
         results = filtered_df
 
+    # --- Display Results ---
     if results.empty:
         st.warning("No matches found.")
     else:
         for i, row in results.iterrows():
-            col1, col2 = st.columns([3,1])
+            col1, col2, col3 = st.columns([3,1,1])
 
             with col1:
                 name = f"{row['First Name']} {row['Last Name']}"
@@ -74,14 +76,20 @@ if uploaded_file:
 
             with col2:
                 if not row["Checked In"]:
-                    if st.button("Check In", key=i):
+                    if st.button("Check In", key=f"in_{i}"):
                         df.at[i, "Checked In"] = True
                         df.at[i, "Checked In Time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # Summary
+            with col3:
+                if row["Checked In"]:
+                    if st.button("Reset", key=f"reset_{i}"):
+                        df.at[i, "Checked In"] = False
+                        df.at[i, "Checked In Time"] = ""
+
+    # --- Summary ---
     st.subheader("📋 Attendee List")
     st.write(f"Total: {len(df)} | Checked In: {df['Checked In'].sum()} | Not Checked In: {len(df) - df['Checked In'].sum()}")
     st.dataframe(df)
 
-    # Save
+    # --- Save ---
     st.download_button("⬇️ Download Updated CSV", df.to_csv(index=False), "checkins.csv")
